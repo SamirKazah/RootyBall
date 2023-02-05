@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
 
     public void StartGame()
 	{
-        player.enabled = false; 
+        player.enabled = true; 
 	}
 
     // Update is called once per frame
