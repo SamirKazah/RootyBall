@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Root : MonoBehaviour
 {
+    public Vines vine;
     public SpringJoint2D sprint;
     public Transform root;
     public Transform visuals, cutRootVisuals;
