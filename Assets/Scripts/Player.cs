@@ -27,7 +27,6 @@ public class PlayerInspector : Editor
             }
         }
     }
-
 }
 
 #endif
@@ -43,26 +42,33 @@ public class Player : MonoBehaviour
     [SerializeField] Camera mainCamera;
 
     [SerializeField, Header("Roots")] int unlockedRoots = 1;
+    [SerializeField] AudioSource shootSound, snip;
+    [SerializeField] LayerMask rootAttachable;
     [SerializeField] float lerpSpeed = 5;
     [SerializeField] float rootHookDistance = 5;
     [SerializeField] Root[] springJoint2Ds;
+    [SerializeField] Transform[] leafs;
     [SerializeField, Range(0, 1)] float pullDistance = .8f;
     [SerializeField] Transform particleHit, rootHit;
 
     // Start is called before the first frame update
     void Start()
     {
-        foreach (var spring in springJoint2Ds)
+		for (int i = 1; i < springJoint2Ds.Length; i++)
         {
-            DisableRoot(spring.root, true);
+			Root spring = springJoint2Ds[i];
+			DisableRoot(spring.root, true);
         }
         rootNotReaching.gameObject.SetActive(false);
+        enabled = false;
+        Update();
     }
 
     public void AddRoot()
     {
         unlockedRoots++;
         unlockedRoots = Mathf.Min(unlockedRoots, 3);
+        leafs[unlockedRoots - 1].gameObject.SetActive(true);
     }
 
     void UnReachableArea(RaycastHit2D hit)
@@ -81,6 +87,8 @@ public class Player : MonoBehaviour
             UnReachableArea(hit);
             return;
         }
+        shootSound.Play();
+        //Visuals
         var p = Instantiate(particleHit);
         p.position = transform.position;
         p.forward = direction;
@@ -90,11 +98,22 @@ public class Player : MonoBehaviour
         pHit.position = hit.point;
         pHit.forward = -direction;
         root.cutRootVisuals = Instantiate(rootHit, hit.point, Quaternion.identity);
+
+        //Physics
         root.sprint.connectedBody.transform.position = hit.point;
         root.sprint.connectedBody.gameObject.SetActive(true);
         root.sprint.enabled = true;
         root.sprint.distance = mag * pullDistance;
         root.parent = hit.transform;
+        
+        //Vaines
+        var vine = hit.transform.GetComponent<Vines>();
+        if (vine)
+        {
+            vine.AddRoot(root);
+            root.vine = vine; 
+            root.parent = vine.toMove;
+        }
     }
 
     IEnumerator RootNotReaching(RaycastHit2D hit)
@@ -143,7 +162,12 @@ public class Player : MonoBehaviour
                     cutRoot.transform.localScale = cutRootVisuals.transform.localScale / 2;
                     cutRoot.transform.right = root.root.up;
                     root.cutRootVisuals.SetParent(root.parent);
+                    snip.Play();
                 }
+				if (root.vine)
+				{
+                    root.vine.RemoveRoot(root);
+				}
                 root.parent = null;
             }
             root.timeStamp = Time.time;
@@ -180,7 +204,7 @@ public class Player : MonoBehaviour
         if (Input.GetMouseButtonUp(0))
         {
             var ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            var hit = Physics2D.Raycast(ray.origin, Vector2.one, .01f, 1 << LayerMask.NameToLayer("Default"));
+            var hit = Physics2D.Raycast(ray.origin, Vector2.one, .01f, rootAttachable);
             if (hit.transform)
             {
                 for (int i = 0; i < Mathf.Min(unlockedRoots, springJoint2Ds.Length); i++)

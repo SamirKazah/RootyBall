@@ -21,6 +21,7 @@ public class MovingBlock : MonoBehaviour
             yield return null;
             transform.position = Vector3.Lerp(startPosition, endPosition, t / timeNeeded);
         }
+        yield return new WaitForSeconds(1);
         t = 0;
         while (t < timeNeeded)
         {
@@ -28,6 +29,7 @@ public class MovingBlock : MonoBehaviour
             yield return null;
             transform.position = Vector3.Lerp(endPosition, startPosition, t / timeNeeded);
         }
+        yield return new WaitForSeconds(1);
         StartCoroutine(MoveObject());
     }
 
