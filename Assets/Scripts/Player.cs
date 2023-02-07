@@ -59,7 +59,7 @@ public class Player : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
-		for (int i = 0; i < springJoint2Ds.Length; i++)
+		for (int i = 1; i < springJoint2Ds.Length; i++)
 		{
 			Root spring = springJoint2Ds[i];
 			DisableRoot(spring.root, true);
