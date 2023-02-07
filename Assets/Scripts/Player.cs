@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
+using UnityEngine.Events;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -33,6 +34,9 @@ public class PlayerInspector : Editor
 
 public class Player : MonoBehaviour
 {
+	[SerializeField, Header("Events")] UnityEvent onDetachedRoot;
+	[SerializeField] UnityEvent onAttatchedRoot;
+
 	[SerializeField, Header("Root Not Reaching")] Transform rootNotReaching;
 	[SerializeField] float lerpTime = .5f;
 	[SerializeField] GameObject cutRootVisuals;
@@ -55,7 +59,7 @@ public class Player : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
-		for (int i = 1; i < springJoint2Ds.Length; i++)
+		for (int i = 0; i < springJoint2Ds.Length; i++)
 		{
 			Root spring = springJoint2Ds[i];
 			DisableRoot(spring.root, true);
@@ -65,11 +69,21 @@ public class Player : MonoBehaviour
 		Update();
 	}
 
+	public void ClearAllRoots()
+	{
+		for (int i = 0; i < springJoint2Ds.Length; i++)
+		{
+			Root spring = springJoint2Ds[i];
+			DisableRoot(spring.root, true);
+		}
+	}
+
 	public void AddRoot()
 	{
 		unlockedRoots++;
 		unlockedRoots = Mathf.Min(unlockedRoots, 3);
 		leafs[unlockedRoots - 1].gameObject.SetActive(true);
+		GameManager.checkPoint = transform.position;
 	}
 
 	void UnReachableArea(RaycastHit2D hit)
@@ -115,6 +129,7 @@ public class Player : MonoBehaviour
 			root.vine = vine;
 			root.parent = vine.toMove;
 		}
+		onAttatchedRoot.Invoke();
 	}
 
 	IEnumerator RootNotReaching(RaycastHit2D hit)
@@ -160,11 +175,12 @@ public class Player : MonoBehaviour
 				sliced = true;
 				if (!cleaner)
 				{
-					var cutRoot = Instantiate(cutRootVisuals, root.root.position, root.root.rotation, root.parent);
+					/*var cutRoot = Instantiate(cutRootVisuals, root.root.position, root.root.rotation, root.parent);
 					cutRoot.transform.localScale = cutRootVisuals.transform.localScale / 2;
-					cutRoot.transform.right = root.root.up;
+					cutRoot.transform.right = root.root.up;*/
 					root.cutRootVisuals.SetParent(root.parent);
 					snip.Play();
+					onDetachedRoot.Invoke();
 				}
 				if (root.vine)
 				{
@@ -180,7 +196,7 @@ public class Player : MonoBehaviour
 	{
 		rootNotReaching.position = transform.position;
 		float p = path.FindClosestPoint(transform.position, 0, -1, 10000);
-		mainCamera.transform.position = path.EvaluatePosition(p) + Vector3.forward * -5;
+		mainCamera.transform.position = Vector3.Lerp(mainCamera.transform.position, path.EvaluatePosition(p) + Vector3.forward * -5, Time.deltaTime * 5);
 		foreach (var root in springJoint2Ds)
 		{
 			if (root.Enable)
@@ -222,7 +238,7 @@ public class Player : MonoBehaviour
 			else
 			{
 				hit.point = ray.origin;
-				if (!sliced)
+				if (!sliced && !springJoint2Ds[unlockedRoots - 1].Enable)
 					UnReachableArea(hit);
 			}
 			sliced = false;

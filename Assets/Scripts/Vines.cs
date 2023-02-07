@@ -13,9 +13,16 @@ public class Vines : MonoBehaviour
 	Coroutine isMoving;
 	List<Root> roots = new List<Root>();
 
-	private void OnCollisionEnter2D(Collision2D collision)
+	BoxCollider2D movingCollider;
+	Vector2 colliderOffset, colliderSize;
+	float distance;
+
+	private void Start()
 	{
-		Debug.Log(collision.transform.name);
+		movingCollider = toMove.GetComponent<BoxCollider2D>();
+		colliderOffset = movingCollider.offset;
+		colliderSize = movingCollider.size;
+		distance = (startPosition - endPosition).magnitude;
 	}
 
 	public void AddRoot(Root root)
@@ -37,33 +44,47 @@ public class Vines : MonoBehaviour
 	{
 		if (isMoving != null)
 			StopCoroutine(isMoving);
-
-		isMoving = StartCoroutine(MoveUp());
+		if (gameObject.activeInHierarchy)
+			isMoving = StartCoroutine(MoveUp());
 	}
 
 	public void StartMovingDown()
 	{
 		if (isMoving != null)
 			StopCoroutine(isMoving);
-
-		isMoving = StartCoroutine(MoveDown());
+		if (gameObject.activeInHierarchy)
+			isMoving = StartCoroutine(MoveDown());
 	}
 
 	IEnumerator MoveUp()
 	{
-		while ((toMove.position - endPosition).sqrMagnitude > 1)
+		Vector2 delta = toMove.position - startPosition;
+		float mag = distance - delta.magnitude;
+		while (mag > .01f)
 		{
+			delta = toMove.position - startPosition;
+			mag = distance - delta.magnitude;
 			yield return null;
+			float t = mag / distance;
 			toMove.position = Vector3.MoveTowards(toMove.position, endPosition, speed * Time.deltaTime);
+			movingCollider.size = Vector2.Lerp(Vector2.zero, colliderSize, t);
+			movingCollider.offset = colliderOffset - delta * .5f;
 		}
 		onReachedTop.Invoke();
 	}
 	IEnumerator MoveDown()
 	{
-		while ((toMove.position - startPosition).sqrMagnitude > 1)
+		Vector2 delta = toMove.position - startPosition;
+		float mag = delta.magnitude;
+		while (mag > .01f)
 		{
+			delta = toMove.position - startPosition;
+			mag = delta.magnitude;
 			yield return null;
+			float t = mag / distance;
 			toMove.position = Vector3.Lerp(toMove.position, startPosition, speed * Time.deltaTime);
+			movingCollider.size = Vector2.Lerp(Vector2.zero, colliderSize, 1 - t);
+			movingCollider.offset = colliderOffset - delta * .5f;
 		}
 	}
 
